@@ -2,7 +2,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  excelData: [],
+  employees: [],
 };
 
 const excelSlice = createSlice({
@@ -10,10 +10,11 @@ const excelSlice = createSlice({
   initialState,
   reducers: {
     setExcelData: (state, action) => {
-      state.excelData = action.payload;
+      console.log(action.payload);
+      state.employees = action.payload;
     },
     clearExcelData: (state) => {
-      state.excelData = [];
+      state.employees = [];
     },
   },
 });

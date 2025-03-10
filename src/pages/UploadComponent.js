@@ -24,9 +24,14 @@ const UploadComponent = () => {
       const workbook = XLSX.read(data, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      dispatch(setExcelData(jsonData));
+      const employees = jsonData.map((row) => ({
+        id: row[0] !== undefined ? row[0] : "",
+        name: row[1] !== undefined ? row[1] : "",
+      }));
+
+      dispatch(setExcelData(employees));
     };
     reader.readAsArrayBuffer(file);
   };

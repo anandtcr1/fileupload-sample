@@ -3,7 +3,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 
 const TableComponent = () => {
-  const excelData = useSelector((state) => state.excel.excelData);
+  const excelData = useSelector((state) => state.excel.employees);
 
   return (
     <div>

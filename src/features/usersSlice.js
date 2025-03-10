@@ -1,5 +1,7 @@
 // userSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+const API_URL = "https://localhost:7209/api/Customer";
 
 const initialState = {
   users: [
@@ -12,6 +14,19 @@ const initialState = {
   ],
 };
 
+export const saveUser = createAsyncThunk(
+  "user/saveUser",
+  async (user, { rejectedWithValue }) => {
+    try {
+      const response = await axios.post(API_URL, user);
+    } catch (error) {
+      return rejectedWithValue(
+        error.response ? error.response.data : error.message
+      );
+    }
+  }
+);
+
 const userSlice = createSlice({
   name: "user",
   initialState,
@@ -23,6 +38,13 @@ const userSlice = createSlice({
       state.employees = action.payload;
     },
   },
+  // extraReducers: (builder) => {
+  //   builder
+  //     .addCase(saveUser.pending, (state) => {
+  //       state.status = "loading";
+  //     })
+  //     .addCase(saveUser.fulfilled, (state, action));
+  // },
 });
 
 export const { setUsers, setEmployees } = userSlice.actions;
