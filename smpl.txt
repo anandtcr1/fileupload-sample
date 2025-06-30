@@ -1,1 +1,144 @@
 https://chatgpt.com/share/68629697-e508-8008-9762-99e3347d6349
+
+In Properties/launchSettings.json:
+
+"profiles": {
+  "YourProject": {
+    "commandName": "Project",
+    "launchBrowser": true,
+    "windowsAuthentication": true,
+    "anonymousAuthentication": false,
+    "applicationUrl": "https://localhost:5001"
+  }
+}
+==============================================
+
+Program.cs
+=============
+var builder = WebApplication.CreateBuilder(args);
+
+// JWT Configuration
+var jwtKey = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = false,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ValidateLifetime = true
+    };
+});
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+
+
+
+
+=====================================================
+appsettings.json Configuration
+=====================================================
+
+"Jwt": {
+  "Key": "YourSuperSecretKeyHere123456",
+  "Issuer": "YourAppName"
+}
+
+
+====================================
+In a helper class (e.g., JwtTokenGenerator.cs):
+===================================
+public class JwtTokenGenerator
+{
+    private readonly IConfiguration _config;
+
+    public JwtTokenGenerator(IConfiguration config)
+    {
+        _config = config;
+    }
+
+    public string GenerateToken(string username)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, username),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: null,
+            claims: claims,
+            expires: DateTime.Now.AddHours(1),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+}
+
+
+=================
+Login Endpoint for Windows Users
+==================
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+    private readonly JwtTokenGenerator _jwt;
+
+    public AuthController(JwtTokenGenerator jwt)
+    {
+        _jwt = jwt;
+    }
+
+    [HttpGet("login")]
+    public IActionResult Login()
+    {
+        if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            var username = User.Identity.Name; // DOMAIN\Username
+            var token = _jwt.GenerateToken(username);
+            return Ok(new { token });
+        }
+
+        return Unauthorized();
+    }
+}
+
+
+=================
+Secure Your API Controller
+====================
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class EmployeeController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult Get()
+    {
+        var user = User.Identity?.Name;
+        return Ok($"Authorized user: {user}");
+    }
+}
+
